@@ -3,13 +3,13 @@
 // JSON verdict, and writes data.json. Exits non-zero (without writing) on
 // any failure so the last good verdict stays in place.
 
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const OUT_PATH = fileURLToPath(new URL("../data.json", import.meta.url));
 const MODEL = process.env.RESEARCH_MODEL || "opencode-go/kimi-k3";
-const TIMEOUT_MS = 5 * 60 * 1000;
+const TIMEOUT_MS = Number(process.env.RESEARCH_TIMEOUT_MS) || 10 * 60 * 1000;
 
 const prompt = [
   "Research and answer now. Today's date is",
@@ -17,24 +17,49 @@ const prompt = [
   "Remember: your entire response must be a single JSON object, nothing else.",
 ].join(" ");
 
-const result = spawnSync(
-  "opencode",
-  ["run", "--agent", "singularity-researcher", "--model", MODEL, prompt],
-  {
-    env: { ...process.env, OPENCODE_ENABLE_EXA: "1" },
-    encoding: "utf8",
-    timeout: TIMEOUT_MS,
-    maxBuffer: 16 * 1024 * 1024,
-  },
-);
+function runAgent() {
+  return new Promise((resolve) => {
+    const child = spawn(
+      "opencode",
+      ["run", "--agent", "singularity-researcher", "--model", MODEL, prompt],
+      {
+        env: { ...process.env, OPENCODE_ENABLE_EXA: "1" },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (d) => (stdout += d));
+    child.stderr.on("data", (d) => (stderr += d));
+
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      console.error("opencode timed out after", TIMEOUT_MS, "ms");
+    }, TIMEOUT_MS);
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      resolve({ error: err, stdout, stderr });
+    });
+
+    child.on("close", (code, signal) => {
+      clearTimeout(timer);
+      resolve({ code, signal, stdout, stderr });
+    });
+  });
+}
+
+const result = await runAgent();
 
 if (result.error) {
   console.error("failed to launch opencode:", result.error.message);
   process.exit(1);
 }
-if (result.status !== 0) {
-  console.error("opencode exited with status", result.status);
-  console.error(result.stderr?.slice(0, 4000));
+if (result.code !== 0) {
+  console.error("opencode exited with code", result.code, "signal", result.signal);
+  if (result.stdout.trim()) console.error("stdout tail:\n" + result.stdout.slice(-3000));
+  if (result.stderr.trim()) console.error("stderr tail:\n" + result.stderr.slice(-3000));
   process.exit(1);
 }
 
