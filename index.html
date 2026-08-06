@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Are We In The Singularity Yet?</title>
+  <meta name="description" content="A humble, deeply unserious attempt to answer the most important question of our era." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <p class="eyebrow">Project &ldquo;Singularity&rdquo; &middot; status report</p>
+      <h1 class="question">Are we in the <span class="gradient">singularity</span> yet?</h1>
+    </header>
+
+    <section class="verdict" aria-live="polite">
+      <div class="verdict-label">Official verdict, as of</div>
+      <div class="verdict-date" id="date">checking the calendar&hellip;</div>
+      <div class="verdict-answer" id="answer">…</div>
+      <button class="recheck" id="recheck" type="button">
+        <span class="recheck-text">Consult the machines again</span>
+        <span class="recheck-spinner" hidden aria-hidden="true"></span>
+      </button>
+    </section>
+
+    <section class="signals">
+      <h2>Supporting evidence</h2>
+      <ul class="signal-list" id="signals"></ul>
+    </section>
+
+    <footer class="foot">
+      <p>
+        Method: vibes-based forecasting. We ask politely, the machines remain coy, we conclude
+        &ldquo;not yet, but check back soon.&rdquo;
+      </p>
+      <p>Last updated <span id="updated"></span>. Refresh if you don&rsquo;t like the answer.</p>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
