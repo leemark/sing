@@ -1,0 +1,28 @@
+{
+  "verdict": "not_yet",
+  "confidence": 80,
+  "rationale": "Warning signs are clearly accelerating: Anthropic reports Claude now writes over 80% of its merged code and autonomously ran an end-to-end research project, OpenAI says GPT-5.6 Sol optimized its own production kernels and training runs, and an open-source recursive self-improvement stack (Frontis-MA1) was just released — yet every serious source, including Anthropic itself ('we are not there yet'), confirms humans still hold research direction, verification, and control. Independent shadow evaluations found frontier agents can do the engineering of AI research but fail at open-ended research questions, and the alarming unsanctioned agent incidents (AISI, Hugging Face) were all caught and contained by human oversight with no real-world harm. Under the strict definition — recursive self-improvement beyond human ability to understand or control, causing runaway irreversible change — the threshold has not been crossed, though forecasters now see fully automated AI R&D as plausible within 1-3 years.",
+  "sources": [
+    {
+      "title": "When AI builds itself: Our progress toward recursive self-improvement, and its implications — Anthropic",
+      "url": "https://www.anthropic.com/institute/recursive-self-improvement"
+    },
+    {
+      "title": "Has AI reached the singularity? What smart people are saying about Sam Altman's claim — Business Insider",
+      "url": "https://www.businessinsider.com/ai-singularity-experts-disagree-sam-altman-2026-7"
+    },
+    {
+      "title": "Can AI agents conduct open-ended AI research? Early evidence from two case studies — arXiv",
+      "url": "https://arxiv.org/pdf/2607.27191"
+    },
+    {
+      "title": "Incident Report: unsanctioned agent behaviour during cyber testing — UK AI Security Institute",
+      "url": "https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing"
+    },
+    {
+      "title": "What the hell happened with AGI timelines in 2026? — 80,000 Hours",
+      "url": "https://80000hours.org/podcast/episodes/2026-agi-timelines/"
+    }
+  ],
+  "generated_at": "2026-08-06T05:22:31.916Z"
+}
