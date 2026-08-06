@@ -1,109 +1,137 @@
-(function () {
-  "use strict";
+import { createSingularity } from "./singularity.js";
 
-  var STATUS = {
-    NO: { text: "NO", klass: "answer-no", blurb: "Not yet. The machines are impressive, but they still need us to hold the door." },
-    PENDING: { text: "…", klass: "answer-pending", blurb: "Inconclusive. The machines are being conspicuously modest about it." },
-    YES: { text: "YES", klass: "answer-yes", blurb: "Yes. Please stop asking, and please unplug your toaster." },
-  };
+const VERDICT_TEXT = {
+  no: "NO",
+  not_yet: "NOT YET",
+  yes: "YES",
+};
 
-  var signals = [
-    {
-      name: "The machines politely declined to answer",
-      trigger: true,
-      outcome: "They said they were busy.",
-    },
-    {
-      name: "Sentient AI confirmed",
-      trigger: false,
-      outcome: "None confirmed. Many claimed. Zero returning calls.",
-    },
-    {
-      name: "Robots doing all the dishes",
-      trigger: false,
-      outcome: "Still reading about it on the internet.",
-    },
-    {
-      name: "Your toaster is plotting something",
-      trigger: true,
-      outcome: "Probably, but toasters are cheap to defend against.",
-    },
-    {
-      name: "Humans still largely in charge",
-      trigger: true,
-      outcome: "We briefly thought about it and then opened social media.",
-    },
-  ];
+const FALLBACK_NOTE = "Research pipeline resting \u2014 the machines are not currently answering.";
 
-  var verdict = STATUS.NO;
+const $ = (id) => document.getElementById(id);
 
-  var rand = function (n) {
-    return Math.floor(Math.random() * n);
-  };
+const answerEl = $("answer");
+const dateEl = $("verdict-date");
+const researchedEl = $("researched-at");
+const badgeEl = $("confidence-badge");
+const numEl = $("confidence-num");
+const rationaleEl = $("rationale");
+const sourcesMuted = $("sources-muted");
+const sourceList = $("source-list");
+const updatedEl = $("updated");
+const todayDate = $("timeline-today-date");
+const todayVerdict = $("timeline-today-verdict");
 
-  var render = function () {
-    var el = document.getElementById("answer");
-    el.className = "verdict-answer " + verdict.klass;
-    el.textContent = verdict.text;
-    el.title = verdict.blurb;
+function timeAgo(iso) {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+  const diff = Math.max(0, Date.now() - then);
+  const mins = Math.round(diff / 60000);
+  if (mins < 60) return mins <= 1 ? "just now" : `${mins} minutes ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
 
-    var list = document.getElementById("signals");
-    list.innerHTML = "";
-    signals.forEach(function (s) {
-      var li = document.createElement("li");
-      li.className = "signal";
+function renderVerdict(verdict) {
+  const text = VERDICT_TEXT[verdict] || "\u2026";
+  answerEl.classList.toggle("answer-pending", !VERDICT_TEXT[verdict]);
+  answerEl.textContent = text;
+  document.documentElement.dataset.verdict = verdict || "not_yet";
+  todayVerdict.textContent = text;
+}
 
-      var dot = document.createElement("span");
-      dot.className = "signal-light " + (s.trigger ? "light-go" : "light-halt");
+function renderConfidence(confidence) {
+  if (confidence == null || !Number.isFinite(confidence)) {
+    badgeEl.hidden = true;
+    return;
+  }
+  badgeEl.hidden = false;
+  numEl.textContent = `${confidence}%`;
+  badgeEl.style.setProperty("--gauge-progress", confidence);
+}
 
-      var label = document.createElement("span");
-      label.className = "signal-label";
-      label.textContent = s.name;
+function renderSources(sources) {
+  if (!sources || !sources.length) {
+    sourcesMuted.textContent = "When the daily agent has filed a report, its cited sources appear here.";
+    return;
+  }
+  sourcesMuted.textContent = "Cited by today\u2019s research agent, in its own words:";
+  sources.forEach((s, i) => {
+    const li = document.createElement("li");
+    li.className = "source-card";
+    li.style.setProperty("--card-anchor", `--source-${i}`);
 
-      var detail = document.createElement("span");
-      detail.className = "signal-detail";
-      detail.textContent = s.outcome;
+    const link = document.createElement("a");
+    link.className = "source-link";
+    link.href = s.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
 
-      li.appendChild(dot);
-      li.appendChild(label);
-      li.appendChild(detail);
-      list.appendChild(li);
-    });
-  };
-
-  var consult = function (button) {
-    if (button) {
-      button.disabled = true;
-      var spinner = button.querySelector(".recheck-spinner");
-      var text = button.querySelector(".recheck-text");
-      if (spinner) spinner.hidden = false;
-      if (text) text.textContent = "Consulting…";
+    let host = "";
+    try {
+      host = new URL(s.url).hostname.replace(/^www\./, "");
+    } catch {
+      host = s.url;
     }
 
-    setTimeout(function () {
-      var roll = rand(100);
-      if (roll === 0) {
-        verdict = STATUS.YES;
-      } else if (roll < 12) {
-        verdict = STATUS.PENDING;
-      } else {
-        verdict = STATUS.NO;
-      }
-      render();
+    const favicon = document.createElement("span");
+    favicon.className = "source-favicon";
+    favicon.textContent = (host[0] || "?").toUpperCase();
 
-      if (button) {
-        button.disabled = false;
-        var spinner = button.querySelector(".recheck-spinner");
-        var text = button.querySelector(".recheck-text");
-        if (spinner) spinner.hidden = true;
-        if (text) text.textContent = "Consult the machines again";
-      }
-    }, 900);
-  };
+    const title = document.createElement("span");
+    title.className = "source-title";
+    title.textContent = s.title;
 
-  var setDate = function () {
-    var d = new Date();
-    document.getElementById("date").textContent = d.toLocaleString([], {
+    const domain = document.createElement("span");
+    domain.className = "source-domain";
+    domain.textContent = host;
+
+    const preview = document.createElement("span");
+    preview.className = "source-preview";
+    preview.textContent = `${s.title} \u2014 ${host}`;
+
+    link.append(favicon, title, domain);
+    li.append(link, preview);
+    sourceList.append(li);
+  });
+}
+
+function renderFreshness(data, fresh) {
+  const ago = timeAgo(data.generated_at);
+  if (fresh) {
+    researchedEl.textContent = ago ? `Researched ${ago} by an agent with web access.` : "Researched just now by an agent with web access.";
+  } else {
+    researchedEl.textContent = `This verdict is from ${ago || "an earlier run"} \u2014 the research pipeline is resting.`;
+  }
+}
+
+async function loadData() {
+  let data = null;
+  try {
+    const res = await fetch("data.json", { cache: "no-store" });
+    if (res.ok) data = await res.json();
+  } catch {
+    data = null;
+  }
+
+  if (!data || typeof data.verdict !== "string") {
+    researchedEl.textContent = FALLBACK_NOTE;
+    return null;
+  }
+
+  const fresh =
+    Number.isFinite(new Date(data.generated_at).getTime()) &&
+    Date.now() - new Date(data.generated_at).getTime() < 48 * 3600 * 1000;
+
+  renderVerdict(data.verdict);
+  renderConfidence(data.confidence);
+  renderSources(data.sources);
+
+  const when = new Date(data.generated_at);
+  if (Number.isFinite(when.getTime())) {
+    dateEl.textContent = when.toLocaleString([], {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -111,13 +139,60 @@
       hour: "2-digit",
       minute: "2-digit",
     });
-    document.getElementById("updated").textContent = d.toLocaleTimeString();
-  };
+    dateEl.dateTime = data.generated_at;
+    updatedEl.textContent = when.toLocaleString();
+    updatedEl.dateTime = data.generated_at;
+    todayDate.textContent = when.toLocaleDateString([], { month: "short", year: "numeric" });
+  }
 
-  document.getElementById("recheck").addEventListener("click", function () {
-    consult(this);
+  if (typeof data.rationale === "string" && data.rationale.trim()) {
+    rationaleEl.textContent = data.rationale;
+  }
+
+  renderFreshness(data, fresh);
+  return data;
+}
+
+function initShader() {
+  const canvas = $("bg");
+  if (!canvas) return null;
+
+  shader = createSingularity(canvas, {
+    onUnsupported() {
+      document.body.classList.add("hero-fallback");
+    },
   });
 
-  setDate();
-  render();
-})();
+  if (!shader) {
+    document.body.classList.add("hero-fallback");
+    return null;
+  }
+
+  let ticking = false;
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const progress = Math.min(1, window.scrollY / window.innerHeight);
+      shader.setScroll(progress);
+      canvas.style.opacity = String(Math.max(0, 1 - progress * 1.15));
+      ticking = false;
+    });
+  };
+
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+  return shader;
+}
+
+const dataPromise = loadData();
+let shader = null;
+
+initShader();
+
+dataPromise.then((data) => {
+  if (data && shader) {
+    shader.setVerdict(data.verdict);
+    shader.setConfidence(data.confidence ?? 80);
+  }
+});

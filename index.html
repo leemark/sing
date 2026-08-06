@@ -1,43 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-verdict="not_yet">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Are We In The Singularity Yet?</title>
-  <meta name="description" content="A humble, deeply unserious attempt to answer the most important question of our era." />
+  <meta
+    name="description"
+    content="A real-time answer to the most important question of our era, researched daily by an AI agent searching the web."
+  />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕳️</text></svg>" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>" />
 </head>
 <body>
-  <main class="shell">
-    <header class="masthead">
-      <p class="eyebrow">Project &ldquo;Singularity&rdquo; &middot; status report</p>
-      <h1 class="question">Are we in the <span class="gradient">singularity</span> yet?</h1>
-    </header>
+  <canvas id="bg" aria-hidden="true"></canvas>
 
-    <section class="verdict" aria-live="polite">
-      <div class="verdict-label">Official verdict, as of</div>
-      <div class="verdict-date" id="date">checking the calendar&hellip;</div>
-      <div class="verdict-answer" id="answer">…</div>
-      <button class="recheck" id="recheck" type="button">
-        <span class="recheck-text">Consult the machines again</span>
-        <span class="recheck-spinner" hidden aria-hidden="true"></span>
-      </button>
-    </section>
+  <header class="hero" id="top">
+    <p class="eyebrow">Project &ldquo;Singularity&rdquo; &middot; status report</p>
+    <h1 class="question">
+      Are we in the <span class="gradient">singularity</span> yet?
+    </h1>
 
-    <section class="signals">
-      <h2>Supporting evidence</h2>
-      <ul class="signal-list" id="signals"></ul>
-    </section>
+    <p class="verdict-label">Official verdict, as of</p>
+    <time class="verdict-date" id="verdict-date" datetime="">checking the calendar&hellip;</time>
 
-    <footer class="foot">
-      <p>
-        Method: vibes-based forecasting. We ask politely, the machines remain coy, we conclude
-        &ldquo;not yet, but check back soon.&rdquo;
+    <div class="verdict-answer" id="answer" aria-live="polite">NOT YET</div>
+
+    <p class="confidence-line">
+      Machine confidence
+      <span class="confidence-badge" id="confidence-badge" data-value="80">
+        <svg viewBox="0 0 36 36" class="gauge-svg" aria-hidden="true">
+          <circle class="gauge-track" cx="18" cy="18" r="15.9" />
+          <circle class="gauge-fill" id="gauge-fill" cx="18" cy="18" r="15.9" />
+        </svg>
+        <span class="confidence-num" id="confidence-num">80%</span>
+      </span>
+    </p>
+
+    <p class="researched">
+      <span id="researched-at">No research yet &mdash; the machines are resting.</span>
+    </p>
+
+    <a class="scroll-cue" href="#evidence" aria-label="Scroll to the evidence">
+      <span class="scroll-cue-label">The evidence</span>
+      <span class="scroll-cue-chevron" aria-hidden="true"></span>
+    </a>
+  </header>
+
+  <main>
+    <section class="section evidence" id="evidence">
+      <h2>The evidence</h2>
+      <blockquote id="rationale" class="rationale">
+        We asked the machines. They were conspicuously modest about it. You can press
+        &ldquo;re-run the research&rdquo; below, but they&rsquo;ll say the same thing.
+      </blockquote>
+
+      <p class="agent-note" id="agent-note">
+        This page&rsquo;s verdict is written by an AI agent that searches the web each day
+        and commits its findings to <code>data.json</code> in the
+        <a href="https://github.com/leemark/sing" target="_blank" rel="noopener">repo</a>.
+        The artwork above is a real-time black hole whose colors follow the verdict.
       </p>
-      <p>Last updated <span id="updated"></span>. Refresh if you don&rsquo;t like the answer.</p>
-    </footer>
+
+      <noscript>
+        <p class="agent-note">
+          JavaScript is disabled, so the live verdict can&rsquo;t load here. Open the site
+          with JavaScript enabled to see today&rsquo;s answer.
+        </p>
+      </noscript>
+    </section>
+
+    <section class="section sources" id="sources">
+      <h2>Primary sources</h2>
+      <p class="section-muted" id="sources-muted">
+        When the daily agent has filed a report, its cited sources appear here.
+      </p>
+      <ul class="source-list" id="source-list"></ul>
+    </section>
+
+    <section class="section forecast" id="forecast">
+      <h2>The forecast</h2>
+      <ol class="timeline">
+        <li class="timeline-item">
+          <time class="timeline-date">1993</time>
+          <div class="timeline-body">
+            <strong>Vernor Vinge</strong>
+            <p>The term is coined in <em>The Coming Technological Singularity</em>; Vinge guesses a 50% chance by 2030.</p>
+          </div>
+        </li>
+        <li class="timeline-item">
+          <time class="timeline-date">2005</time>
+          <div class="timeline-body">
+            <strong>Ray Kurzweil</strong>
+            <p><em>The Singularity Is Near</em> predicts a 2045 convergence of machine and human intelligence.</p>
+          </div>
+        </li>
+        <li class="timeline-item">
+          <time class="timeline-date">2026</time>
+          <div class="timeline-body">
+            <strong>Forecasters today</strong>
+            <p>Many researchers now see fully automated AI research as plausible within a few years &mdash; while insisting the threshold itself has not been crossed.</p>
+          </div>
+        </li>
+        <li class="timeline-item">
+          <time class="timeline-date" id="timeline-today-date">Today</time>
+          <div class="timeline-body">
+            <strong>The machine reports</strong>
+            <p class="timeline-verdict" id="timeline-today-verdict">…</p>
+          </div>
+        </li>
+      </ol>
+    </section>
   </main>
-  <script src="app.js"></script>
+
+  <footer class="methodology">
+    <h2>Methodology</h2>
+    <p>
+      Every day at 06:00 UTC, a scheduled workflow (<a
+        href="https://github.com/leemark/sing/actions"
+        target="_blank"
+        rel="noopener"
+        >GitHub Actions</a
+      >) launches an OpenCode agent with web search enabled. The agent researches the latest
+      AI capability news and writes a JSON verdict &mdash; <code>no</code>,
+      <code>not_yet</code>, or <code>yes</code> &mdash; with confidence, a rationale, and cited
+      sources. When it changes, the repo commits it and this page re-renders. This is honest,
+      vibes-free, and occasionally wrong.
+    </p>
+    <p class="methodology-meta">
+      Last research:
+      <time id="updated" datetime="">never</time>
+      &middot;
+      <a href="https://github.com/leemark/sing" target="_blank" rel="noopener">source code</a>
+    </p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
