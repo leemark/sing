@@ -41,6 +41,10 @@ rebuild as needed):
 ## Research pipeline
 
 - `scripts/research.mjs` runs the `singularity-researcher` agent via
-  `opencode run` and writes `data.json`. Requires `OPENCODE_ENABLE_EXA=1`.
-- The scheduled workflow `.github/workflows/research.yml` restores auth from the
-  `OPENCODE_AUTH_JSON` secret and commits `data.json` when it changes.
+  `opencode run` and writes `data.json`. Requires `OPENCODE_ENABLE_EXA=1`
+  (the script sets it for the child process itself). Uses the local
+  `~/.local/share/opencode/auth.json` — no repo secrets needed.
+- `scripts/update.sh` is the one-shot local entrypoint: it runs the research,
+  then commits and pushes `data.json` if it changed. The push triggers the
+  `pages.yml` workflow, which redeploys the site to GitHub Pages.
+- There is no scheduled workflow; updates happen on demand.
