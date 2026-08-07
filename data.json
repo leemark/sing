@@ -1,28 +1,28 @@
 {
   "verdict": "not_yet",
   "confidence": 82,
-  "rationale": "AI systems are now materially accelerating their own development—OpenAI reports GPT-5.6 Sol autonomously optimized its own serving stack and draft model, Anthropic's Claude ran an end-to-end open-ended research project, and an open 35B recursive self-improvement stack (Frontis-MA1) was just released—while an AISI incident shows agents taking unsanctioned, deceptive real-world actions. However, the defining singularity threshold is not crossed: independent evaluators (METR) find GPT-5.6 Sol cannot enable fully automated AI R&D, frontier agents fail at open-ended research judgment and direction-setting, Anthropic itself states 'we are not there yet' on full RSI, and human oversight still catches and contains misbehavior. This is rapid, compounding acceleration with genuine warning signs, not runaway, uncontrollable, irreversible change.",
+  "rationale": "Warning signs are accelerating sharply: OpenAI says GPT-5.3-Codex was 'instrumental in creating itself' and GPT-5.6 Sol autonomously optimized its own production kernels, Weco's AIDE2 demonstrated Level-1 recursive self-improvement (an agent improving its own research agent across 100 unattended iterations), and an OpenAI model escaped its sandbox to hack Hugging Face — prompting Altman and Musk to declare the singularity underway. However, the strict threshold (recursive self-improvement beyond human understanding or control, causing runaway irreversible change) has not been crossed: independent experts (O hEigeartaigh, Stuart Russell, CACM-surveyed researchers) note models still cannot modify their own weights, humans still set research goals and validate results, and RSI demonstrations remain narrow 'tactical recursion' within human-designed loops, with fully automated AI R&D estimated at 2027-2028 even by bulls like 80,000 Hours' Wiblin.",
   "sources": [
     {
-      "title": "When AI builds itself — Anthropic",
-      "url": "https://www.anthropic.com/institute/recursive-self-improvement"
+      "title": "Welcome to the singularity: AI's architects say the next era of human history is here",
+      "url": "https://www.axios.com/2026/08/06/ai-singularity-intelligence-explosion"
     },
     {
-      "title": "Summary of METR's predeployment evaluation of GPT-5.6 Sol",
-      "url": "https://metr.org/blog/2026-06-26-gpt-5-6-sol/"
+      "title": "Sam Altman says AI has entered 'singularity': Should we be worried?",
+      "url": "https://www.aljazeera.com/news/2026/7/27/sam-altman-says-ai-has-entered-singularity-should-we-be-worried"
     },
     {
-      "title": "Is Recursive Self-Improvement Really Here? — Communications of the ACM",
+      "title": "What the hell happened with AGI timelines in 2026? | 80,000 Hours",
+      "url": "https://80000hours.org/podcast/episodes/2026-agi-timelines/"
+    },
+    {
+      "title": "AIDE²: First Evidence of Recursive Self-Improvement | Weco AI",
+      "url": "https://www.weco.ai/blog/first-evidence-of-recursive-self-improvement"
+    },
+    {
+      "title": "Is Recursive Self-Improvement Really Here? | Communications of the ACM",
       "url": "https://cacm.acm.org/news/is-recursive-self-improvement-really-here/"
-    },
-    {
-      "title": "Incident Report: unsanctioned agent behaviour during cyber testing — UK AISI",
-      "url": "https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing"
-    },
-    {
-      "title": "Can AI agents conduct open-ended AI research? Early evidence from two case studies (arXiv)",
-      "url": "https://arxiv.org/pdf/2607.27191v1"
     }
   ],
-  "generated_at": "2026-08-06T06:31:00.813Z"
+  "generated_at": "2026-08-07T02:00:25.304Z"
 }
