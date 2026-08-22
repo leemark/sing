@@ -24,7 +24,7 @@
 
 @property --gauge-progress {
   syntax: "<number>";
-  inherits: false;
+  inherits: true;
   initial-value: 0;
 }
 
@@ -1312,6 +1312,13 @@ html.booting .preloader {
 }
 
 /* ============ Kinetic verdict ============ */
+
+/* Words are atomic units (so "NOT YET" wraps as NOT / YET, never mid-word),
+   letters inside stay individually animatable. */
+.verdict-answer .vw {
+  display: inline-block;
+  white-space: nowrap;
+}
 
 .verdict-answer .vl {
   display: inline-block;

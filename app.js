@@ -80,12 +80,20 @@ function splitVerdictLetters(el, text) {
   hidden.textContent = text;
   const wrap = document.createElement("span");
   wrap.setAttribute("aria-hidden", "true");
-  for (let i = 0; i < text.length; i++) {
-    const b = document.createElement("b");
-    b.className = "vl";
-    b.style.setProperty("--i", i);
-    b.textContent = text[i];
-    wrap.append(b);
+  let i = 0;
+  for (const word of text.split(" ")) {
+    if (!word) continue;
+    const w = document.createElement("span");
+    w.className = "vw";
+    for (const ch of word) {
+      const b = document.createElement("b");
+      b.className = "vl";
+      b.style.setProperty("--i", i++);
+      b.textContent = ch;
+      w.append(b);
+    }
+    wrap.append(w);
+    wrap.append(document.createTextNode(" "));
   }
   el.append(hidden, wrap);
 }
