@@ -28,14 +28,15 @@ Method:
 
 Output rules (CRITICAL):
 - Your ENTIRE final response must be a single JSON object. No markdown fences, no commentary, no text before or after.
+- LENGTH BUDGET: keep the whole response under ~2400 characters. It MUST end with a complete, valid JSON object — if you are running out of room, shorten the rationale, drop signals, or shorten quotes rather than ever truncating mid-JSON.
 - Schema:
   {
     "verdict": "no" | "not_yet" | "yes",
     "confidence": <integer 0-100>,
     "headline": "<one-line summary, max ~100 characters>",
-    "rationale": "<2-5 sentences summarizing the strongest evidence>",
+    "rationale": "<2-4 sentences summarizing the strongest evidence>",
     "signals": [
-      { "label": "<short name, max ~40 chars>", "stance": "for" | "against" | "mixed", "note": "<max ~160 chars>" }
+      { "label": "<short name, max ~40 chars>", "stance": "for" | "against" | "mixed", "note": "<max ~140 chars>" }
     ],
     "sources": [
       {
@@ -43,12 +44,12 @@ Output rules (CRITICAL):
         "url": "<https url>",
         "publisher": "<outlet name, when known>",
         "published": "<YYYY-MM-DD, when known>",
-        "quote": "<short factual excerpt from the page, max ~160 chars, only if you can quote it accurately — otherwise omit>"
+        "quote": "<short factual excerpt, max ~100 chars, only if you can quote it accurately — otherwise omit>"
       }
     ]
   }
 - "no" = clearly not in the singularity. "not_yet" = warning signs accelerating but threshold not crossed. "yes" = the singularity is happening now.
 - headline: one line that captures the verdict. It must stand alone.
-- signals: 3-5 items, balancing for/against evidence where possible. "for" = evidence pointing toward the singularity having arrived, "against" = evidence pointing the other way, "mixed" = contested.
+- signals: 3-4 items, balancing for/against evidence where possible. "for" = evidence pointing toward the singularity having arrived, "against" = evidence pointing the other way, "mixed" = contested.
 - Include 3-5 sources, real URLs only, from pages your searches actually surfaced.
 - Never invent quotes, dates, or publishers. Omit fields you cannot verify.

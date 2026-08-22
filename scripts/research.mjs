@@ -69,6 +69,15 @@ function deriveHeadline(rationale) {
   return first.length > 100 ? first.slice(0, 97).trimEnd() + "\u2026" : first;
 }
 
+// Clip on a word boundary and mark truncation, so notes never end mid-word.
+function clip(text, max) {
+  const s = String(text).trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max).lastIndexOf(" ");
+  const end = cut > max * 0.6 ? cut : max;
+  return s.slice(0, end).trimEnd() + "\u2026";
+}
+
 function validate(data) {
   if (!VERDICTS.has(data.verdict)) {
     console.error("bad verdict:", data.verdict);
@@ -85,31 +94,31 @@ function normalize(data) {
   const confidence = Math.round(Number(data.confidence));
   const headline =
     typeof data.headline === "string" && data.headline.trim()
-      ? data.headline.trim().slice(0, 100)
+      ? clip(data.headline, 100)
       : deriveHeadline(data.rationale);
 
   const signals = (Array.isArray(data.signals) ? data.signals : [])
     .filter((s) => s && typeof s.label === "string" && s.label.trim())
     .slice(0, 5)
     .map((s) => ({
-      label: s.label.trim().slice(0, 40),
+      label: clip(s.label, 40),
       stance: STANCES.has(s.stance) ? s.stance : "mixed",
-      note: typeof s.note === "string" ? s.note.trim().slice(0, 160) : "",
+      note: typeof s.note === "string" ? clip(s.note, 160) : "",
     }));
 
   const sources = (Array.isArray(data.sources) ? data.sources : [])
     .filter((s) => s && typeof s.title === "string" && /^https?:\/\//.test(s.url || ""))
     .slice(0, 5)
     .map((s) => {
-      const src = { title: s.title.trim().slice(0, 200), url: s.url.trim() };
+      const src = { title: clip(s.title, 200), url: s.url.trim() };
       if (typeof s.publisher === "string" && s.publisher.trim()) {
-        src.publisher = s.publisher.trim().slice(0, 60);
+        src.publisher = clip(s.publisher, 60);
       }
       if (typeof s.published === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s.published.trim())) {
         src.published = s.published.trim();
       }
       if (typeof s.quote === "string" && s.quote.trim()) {
-        src.quote = s.quote.trim().slice(0, 160);
+        src.quote = clip(s.quote, 160);
       }
       return src;
     });
@@ -367,34 +376,74 @@ if (process.env.RESEARCH_PATCH_ONLY === "1") {
   process.exit(0);
 }
 
-const result = await runAgent();
-
-if (result.error) {
-  console.error("failed to launch opencode:", result.error.message);
-  process.exit(1);
+// Models occasionally emit raw control characters inside JSON strings
+// (e.g. an unescaped newline mid-quote). Escape them while preserving
+// structural whitespace.
+function sanitizeJsonStrings(text) {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const ch of text) {
+    if (inString) {
+      if (escaped) {
+        out += ch;
+        escaped = false;
+      } else if (ch === "\\") {
+        out += ch;
+        escaped = true;
+      } else if (ch === '"') {
+        out += ch;
+        inString = false;
+      } else if (ch.charCodeAt(0) < 0x20) {
+        out += "\\u" + ch.charCodeAt(0).toString(16).padStart(4, "0");
+      } else {
+        out += ch;
+      }
+    } else {
+      if (ch === '"') inString = true;
+      out += ch;
+    }
+  }
+  return out;
 }
-if (result.code !== 0) {
-  console.error("opencode exited with code", result.code, "signal", result.signal);
-  if (result.stdout.trim()) console.error("stdout tail:\n" + result.stdout.slice(-3000));
-  if (result.stderr.trim()) console.error("stderr tail:\n" + result.stderr.slice(-3000));
-  process.exit(1);
+
+function extractData(stdout) {
+  const start = stdout.indexOf("{");
+  const end = stdout.lastIndexOf("}");
+  if (start === -1 || end <= start) {
+    console.error("no JSON object found in output:\n", stdout.slice(0, 4000));
+    return null;
+  }
+  try {
+    return JSON.parse(sanitizeJsonStrings(stdout.slice(start, end + 1)));
+  } catch (err) {
+    console.error("invalid JSON:", err.message);
+    console.error(stdout.slice(0, 4000));
+    return null;
+  }
 }
 
-const stdout = result.stdout.trim();
+let data = null;
+for (let attempt = 1; attempt <= 3 && !data; attempt++) {
+  if (attempt > 1) console.error(`JSON extraction failed; retrying research run (attempt ${attempt} of 3)`);
+  const result = await runAgent();
 
-const start = stdout.indexOf("{");
-const end = stdout.lastIndexOf("}");
-if (start === -1 || end <= start) {
-  console.error("no JSON object found in output:\n", stdout.slice(0, 4000));
-  process.exit(1);
+  if (result.error) {
+    console.error("failed to launch opencode:", result.error.message);
+    process.exit(1);
+  }
+  if (result.code !== 0) {
+    console.error("opencode exited with code", result.code, "signal", result.signal);
+    if (result.stdout.trim()) console.error("stdout tail:\n" + result.stdout.slice(-3000));
+    if (result.stderr.trim()) console.error("stderr tail:\n" + result.stderr.slice(-3000));
+    process.exit(1);
+  }
+
+  data = extractData(result.stdout.trim());
 }
 
-let data;
-try {
-  data = JSON.parse(stdout.slice(start, end + 1));
-} catch (err) {
-  console.error("invalid JSON:", err.message);
-  console.error(stdout.slice(0, 4000));
+if (!data) {
+  console.error("research failed: could not extract a valid JSON verdict after 3 attempts");
   process.exit(1);
 }
 
