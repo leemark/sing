@@ -102,6 +102,7 @@ export function createSingularity(canvas, opts = {}) {
     scale: 1,
     ema: 0.016,
     adjust: 0,
+    pulse: 0,
   };
 
   const palette = () => PALETTES[state.verdict] || PALETTES.not_yet;
@@ -249,9 +250,9 @@ export function createSingularity(canvas, opts = {}) {
 
   function step(dt) {
     const pal = palette();
-    const chaos = pal.chaos;
+    const chaos = Math.min(1, pal.chaos + 0.3 * state.pulse);
     const speed = 0.75 + 0.85 * state.confidence;
-    const bright = 0.75 + 0.75 * state.confidence;
+    const bright = (0.75 + 0.75 * state.confidence) * (1 + 0.55 * state.pulse);
     const zoom = height * 0.21 * (1 - state.scroll * 0.4);
     const t = state.time;
     let o = 0;
@@ -312,7 +313,7 @@ export function createSingularity(canvas, opts = {}) {
       data[o++] = wr;
       data[o++] = wg;
       data[o++] = wb;
-      data[o++] = 0.95 * flicker * bright;
+      data[o++] = Math.min(1, 0.9 * flicker * bright);
     }
 
     for (let i = 0; i < N_CORE; i++) {
@@ -320,10 +321,10 @@ export function createSingularity(canvas, opts = {}) {
       const x = p.y * Math.cos(t * 0.7 + p.seed * 6.283) * 0.3;
       const z = p.y * Math.sin(t * 0.7 + p.seed * 6.283) * 0.3;
       const pr = project(x, 0, z, zoom);
-      const size = (26 + 40 * Math.sin(p.seed * 6.283)) * (0.75 + 0.35 * state.confidence);
-      const cr = 1 - (1 - pal.accent[0]) * 0.5;
-      const cg = 1 - (1 - pal.accent[1]) * 0.5;
-      const cb = 1 - (1 - pal.accent[2]) * 0.5;
+      const size = (14 + 22 * Math.sin(p.seed * 6.283)) * (0.75 + 0.35 * state.confidence);
+      const cr = 1 - (1 - pal.accent[0]) * 0.55;
+      const cg = 1 - (1 - pal.accent[1]) * 0.55;
+      const cb = 1 - (1 - pal.accent[2]) * 0.55;
 
       data[o++] = pr.sx;
       data[o++] = pr.sy;
@@ -331,7 +332,7 @@ export function createSingularity(canvas, opts = {}) {
       data[o++] = cr;
       data[o++] = cg;
       data[o++] = cb;
-      data[o++] = 0.42;
+      data[o++] = 0.2;
     }
   }
 
@@ -358,6 +359,7 @@ export function createSingularity(canvas, opts = {}) {
     state.last = now;
     state.time += dt;
     state.ema = state.ema * 0.95 + dt * 0.05;
+    state.pulse = Math.max(0, state.pulse - dt * 1.2);
     adjustQuality();
 
     if (!state.reduce) {
@@ -472,10 +474,19 @@ export function createSingularity(canvas, opts = {}) {
   return {
     setVerdict(v) {
       state.verdict = PALETTES[v] ? v : "not_yet";
+      state.pulse = 1;
       resetTrails();
+      if (state.reduce) {
+        step(0);
+        draw();
+      }
     },
     setConfidence(c) {
       state.confidence = Math.min(1, Math.max(0, Number(c) || 0) / 100);
+      if (state.reduce) {
+        step(0);
+        draw();
+      }
     },
     setScroll(s) {
       state.scroll = Math.min(1, Math.max(0, s));

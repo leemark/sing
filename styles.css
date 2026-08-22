@@ -6,12 +6,6 @@
   initial-value: 0;
 }
 
-@property --spin-deg {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
 :root {
   --bg: oklch(0.13 0.02 265);
   --bg-2: oklch(0.16 0.025 265);
@@ -19,7 +13,7 @@
   --panel-2: oklch(0.23 0.035 265);
   --border: oklch(0.32 0.04 265);
   --text: oklch(0.95 0.01 265);
-  --muted: oklch(0.72 0.03 265);
+  --muted: oklch(0.76 0.03 265);
   --scrim: oklch(0.1 0.02 265 / 0.72);
   --radius: 16px;
   --gutter: clamp(1.25rem, 4vw, 3rem);
@@ -53,6 +47,12 @@
   --v-ink: oklch(0.92 0.12 15);
   --v-glow: oklch(0.65 0.22 20 / 0.55);
 }
+[data-verdict="unknown"] {
+  --v-soft: oklch(0.68 0.02 265);
+  --v-mid: oklch(0.75 0.03 265);
+  --v-ink: oklch(0.85 0.02 265);
+  --v-glow: oklch(0.55 0.02 265 / 0.5);
+}
 
 *,
 *::before,
@@ -76,6 +76,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ============ Skip link ============ */
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 50;
+  padding: 0.5rem 0.9rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transform: translateY(-250%);
+  transition: transform 0.15s ease;
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
 /* ============ Shader background ============ */
 
 #bg {
@@ -87,18 +109,20 @@ body {
   display: block;
 }
 
-/* Non-WebGL fallback: a deliberate, CSS-drawn "artist's singularity". */
+/* Non-WebGL fallback: a deliberate, CSS-drawn "artist's singularity".
+   The scene sits on the hero (not body) so it scrolls away with it, and
+   applies whenever JS is off or WebGL is unavailable. With working WebGL
+   the opaque canvas covers it. */
 body.hero-fallback #bg {
   display: none;
 }
 
-body.hero-fallback {
+body.hero-fallback .hero,
+html:not(.js) .hero {
   background:
-    radial-gradient(circle at 50% 38%, transparent 0 8%, var(--v-glow) 8.5%, transparent 12%),
-    radial-gradient(circle at 50% 38%, var(--scrim) 0 9%, transparent 9.5%),
-    radial-gradient(30rem 16rem at 50% 20%, color-mix(in oklch, var(--v-mid) 30%, transparent), transparent 70%),
-    radial-gradient(circle at 50% 38%, color-mix(in oklch, var(--v-ink) 80%, black), var(--bg) 22%),
-    var(--bg);
+    radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--v-ink) 45%, black) 0 3.2rem, transparent 3.4rem),
+    radial-gradient(56rem 10rem at 50% 40%, color-mix(in oklch, var(--v-mid) 32%, transparent) 0 58%, transparent 76%),
+    radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--v-mid) 16%, transparent), transparent 30rem);
 }
 
 body.hero-fallback #bg + * {
@@ -115,11 +139,66 @@ body.hero-fallback #bg + * {
   justify-content: center;
   text-align: center;
   padding: var(--gutter);
+  padding-bottom: 4.5rem;
   position: relative;
 }
 
 .hero > * {
   margin-block: 0.4rem;
+}
+
+.hero-scrim {
+  position: relative;
+  z-index: 1;
+  padding: 1.1rem 1.6rem;
+  border-radius: var(--radius);
+  background: color-mix(in oklch, var(--scrim) 92%, transparent);
+  border: 1px solid color-mix(in oklch, var(--v-mid) 22%, transparent);
+  box-shadow: 0 12px 44px oklch(0 0 0 / 0.35);
+  max-width: min(40rem, 100%);
+}
+
+.hero-scrim--verdict {
+  max-width: min(34rem, 100%);
+}
+
+.hero-scrim + .hero-scrim {
+  margin-top: 1.4rem;
+}
+
+@supports ((backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px))) {
+  .hero-scrim {
+    -webkit-backdrop-filter: blur(24px) saturate(1.1);
+    backdrop-filter: blur(24px) saturate(1.1);
+    background: color-mix(in oklch, var(--scrim) 72%, transparent);
+  }
+}
+
+/* ============ Hero load choreography ============ */
+
+html.js:not(.hero-ready) .hero-scrim {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+html.js .hero-scrim {
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+html.js .hero-scrim--verdict {
+  transition-delay: 0.12s;
+}
+
+html.js.hero-ready .hero-scrim {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js:not(.hero-ready) .hero-scrim {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .eyebrow {
@@ -135,7 +214,7 @@ body.hero-fallback #bg + * {
   line-height: 1.05;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin: 0.5rem auto 1.5rem;
+  margin: 0.5rem auto 1rem;
   max-width: 16ch;
   text-wrap: balance;
 }
@@ -149,6 +228,23 @@ body.hero-fallback #bg + * {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.definition {
+  font-size: 0.82rem;
+  color: var(--muted);
+  max-width: 48ch;
+  margin: 0 auto;
+  text-wrap: pretty;
+}
+
+.definition-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--v-mid);
+  margin-right: 0.55em;
 }
 
 .verdict-label {
@@ -229,19 +325,92 @@ body.hero-fallback #bg + * {
   font-weight: 700;
 }
 
-/* ============ Researched + cue ============ */
+/* ============ Freshness + researched ============ */
 
 .researched {
   color: var(--muted);
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
+.freshness-badge {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+.freshness-badge[data-tier="fresh"] {
+  color: oklch(0.85 0.13 150);
+  border-color: oklch(0.6 0.12 150 / 0.6);
+  background: oklch(0.5 0.12 150 / 0.14);
+}
+
+.freshness-badge[data-tier="aging"] {
+  color: oklch(0.85 0.11 80);
+  border-color: oklch(0.7 0.13 80 / 0.6);
+  background: oklch(0.6 0.13 80 / 0.14);
+}
+
+.freshness-badge[data-tier="resting"] {
+  color: oklch(0.8 0.04 265);
+  border-color: oklch(0.6 0.04 265 / 0.6);
+  background: oklch(0.5 0.04 265 / 0.16);
+}
+
+/* ============ Share ============ */
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.share-btn {
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text);
+  background: color-mix(in oklch, var(--panel) 80%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.share-btn:hover,
+.share-btn:focus-visible {
+  border-color: var(--v-mid);
+  background: color-mix(in oklch, var(--v-mid) 14%, var(--panel));
+}
+
+.share-btn.share-ok {
+  border-color: oklch(0.72 0.13 150);
+}
+
+.share-status {
+  min-height: 1em;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0;
+}
+
+/* ============ Scroll cue ============ */
+
 .scroll-cue {
-  position: absolute;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
   display: inline-flex;
   flex-direction: column;
   align-items: center;
@@ -251,6 +420,17 @@ body.hero-fallback #bg + * {
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  margin-top: 2.2rem;
+}
+
+@media (min-height: 56rem) {
+  .scroll-cue {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 0;
+  }
 }
 
 .scroll-cue-chevron {
@@ -287,14 +467,89 @@ body.hero-fallback #bg + * {
   margin-top: 0;
 }
 
+/* ============ Evidence: headline + signals + rationale ============ */
+
+.headline {
+  font-size: clamp(1.15rem, 2.6vw, 1.6rem);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 1.25rem 0 0;
+  text-wrap: balance;
+}
+
+.signal-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+}
+
+.signal-card {
+  background: color-mix(in oklch, var(--panel) 70%, transparent);
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+}
+
+.signal-card[data-stance="for"] {
+  border-left-color: oklch(0.7 0.17 25);
+}
+
+.signal-card[data-stance="against"] {
+  border-left-color: oklch(0.7 0.14 210);
+}
+
+.signal-card[data-stance="mixed"] {
+  border-left-color: oklch(0.72 0.11 85);
+}
+
+.signal-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.signal-note {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+  text-wrap: pretty;
+}
+
+.signal-stance {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  margin-top: 0.4rem;
+  color: var(--muted);
+}
+
+.signal-card[data-stance="for"] .signal-stance {
+  color: oklch(0.8 0.15 25);
+}
+
+.signal-card[data-stance="against"] .signal-stance {
+  color: oklch(0.8 0.12 210);
+}
+
+.signal-card[data-stance="mixed"] .signal-stance {
+  color: oklch(0.8 0.1 85);
+}
+
 .rationale {
   margin: 1.5rem 0 0;
   padding: 1.5rem 1.75rem;
   border-left: 3px solid var(--v-mid);
   background: color-mix(in oklch, var(--panel) 70%, transparent);
   border-radius: 0 var(--radius) var(--radius) 0;
-  font-size: clamp(1.1rem, 2.4vw, 1.5rem);
-  line-height: 1.5;
+  font-size: clamp(1rem, 2.2vw, 1.3rem);
+  line-height: 1.55;
   text-wrap: pretty;
 }
 
@@ -352,7 +607,7 @@ a:focus-visible {
 
   .source-link {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.8rem;
     padding: 0.9rem 1rem;
     color: var(--text);
@@ -365,14 +620,22 @@ a:focus-visible {
   }
 
   .source-favicon {
-    width: 1.15rem;
-    height: 1.15rem;
+    width: 1.35rem;
+    height: 1.35rem;
     flex: none;
-    border-radius: 4px;
+    margin-top: 0.1rem;
+    border-radius: 5px;
     background: color-mix(in oklch, var(--panel-2) 80%, transparent);
     display: grid;
     place-items: center;
     font-size: 0.8rem;
+  }
+
+  .source-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
   }
 
   .source-title {
@@ -380,54 +643,19 @@ a:focus-visible {
     line-height: 1.3;
   }
 
-  .source-domain {
+  .source-meta {
     color: var(--muted);
-    font-size: 0.78rem;
-    white-space: nowrap;
-  }
-}
-
-/* Source hover-preview: anchored tooltip when the platform supports it. */
-.source-preview {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  z-index: 5;
-  max-width: 24rem;
-  padding: 0.7rem 0.85rem;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: 0.82rem;
-  color: var(--muted);
-  opacity: 0;
-  transform: translateY(-4px);
-  pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-  display: none;
-}
-
-.source-card:hover .source-preview,
-.source-card:focus-within .source-preview {
-  opacity: 1;
-  transform: none;
-}
-
-@supports (position-anchor: auto) or (anchor-name: --foo) {
-  .source-card {
-    anchor-name: var(--card-anchor);
+    font-size: 0.75rem;
   }
 
-  .source-preview {
-    display: block;
-    position: absolute;
-    position-anchor: var(--card-anchor);
-    top: anchor(bottom);
-    left: 0;
-    inset-area: block-end span-inline-start;
+  .source-quote {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-style: italic;
+    line-height: 1.45;
+    text-wrap: pretty;
   }
 }
-
 /* ============ Timeline ============ */
 
 .timeline {
@@ -521,6 +749,82 @@ a:focus-visible {
 
 .methodology-meta {
   margin-top: 1.4rem;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.criteria {
+  max-width: 42rem;
+  margin: 1.25rem auto 0;
+  text-align: left;
+  background: color-mix(in oklch, var(--panel) 60%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.9rem;
+}
+
+.criteria summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.criteria summary:hover,
+.criteria summary:focus-visible {
+  color: var(--v-mid);
+}
+
+.criteria ul {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+}
+
+.criteria li + li {
+  margin-top: 0.35rem;
+}
+
+/* ============ History ============ */
+
+.history {
+  max-width: 42rem;
+  margin: 1.5rem auto 0;
+}
+
+.history-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+}
+
+.history-dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: oklch(0.6 0.02 265);
+}
+
+.history-dot[data-verdict="no"] {
+  background: oklch(0.72 0.12 200);
+}
+
+.history-dot[data-verdict="not_yet"] {
+  background: oklch(0.72 0.13 300);
+}
+
+.history-dot[data-verdict="yes"] {
+  background: oklch(0.72 0.2 25);
+}
+
+.history-caption {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 /* ============ Scroll-driven reveals (progressive enhancement) ============ */
@@ -543,20 +847,6 @@ a:focus-visible {
       transform: none;
     }
   }
-
-  @supports (animation-timeline: scroll()) {
-    .hero {
-      animation: hero-fade both;
-      animation-timeline: scroll(root);
-      animation-range: 0 60vh;
-    }
-
-    @keyframes hero-fade {
-      to {
-        opacity: 0.15;
-      }
-    }
-  }
 }
 
 /* ============ Reduced motion ============ */
@@ -574,8 +864,7 @@ a:focus-visible {
 
   @supports (animation-timeline: view()) {
     .section,
-    .methodology,
-    .hero {
+    .methodology {
       animation: none !important;
     }
   }
@@ -596,6 +885,27 @@ a:focus-visible {
 /* ============ Small screens ============ */
 
 @media (max-width: 40rem) {
+  .hero {
+    justify-content: flex-start;
+    padding-top: clamp(3.5rem, 10vh, 5.5rem);
+  }
+
+  .hero-scrim {
+    padding: 0.9rem 1.1rem;
+  }
+
+  .hero-scrim--verdict {
+    padding-bottom: 0.7rem;
+  }
+
+  .hero-scrim + .hero-scrim {
+    margin-top: 1rem;
+  }
+
+  .verdict-answer {
+    font-size: clamp(3.6rem, 20vw, 6rem);
+  }
+
   .timeline::before {
     left: 1.6rem;
   }
@@ -618,5 +928,108 @@ a:focus-visible {
   .confidence-line {
     flex-direction: column;
     gap: 0.4rem;
+  }
+}
+
+/* Short laptop viewports: fit the whole verdict above the fold. */
+@media (max-height: 52rem) and (min-width: 40rem) {
+  .hero {
+    justify-content: flex-start;
+    padding-top: 1.5rem;
+  }
+
+  .hero-scrim {
+    padding: 0.85rem 1.3rem;
+  }
+
+  .hero-scrim + .hero-scrim {
+    margin-top: 1.1rem;
+  }
+
+  .question {
+    font-size: clamp(2rem, 5.5vw, 3.4rem);
+  }
+
+  .verdict-answer {
+    font-size: clamp(3.8rem, 15vw, 8rem);
+  }
+}
+
+/* ============ Print ============ */
+
+@media print {
+  #bg,
+  .scroll-cue,
+  .share-btn,
+  .share-status,
+  .skip-link {
+    display: none !important;
+  }
+
+  html.js:not(.hero-ready) .hero-scrim {
+    opacity: 1;
+    transform: none;
+  }
+
+  body {
+    background: #fff;
+    color: #111;
+  }
+
+  .hero {
+    min-height: 0;
+    padding: 1rem 0;
+  }
+
+  .hero-scrim {
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .verdict-answer {
+    text-shadow: none;
+    color: #111;
+  }
+
+  .gradient {
+    background: none;
+    color: #111;
+  }
+
+  .definition,
+  .eyebrow,
+  .verdict-label,
+  .verdict-date,
+  .confidence-line,
+  .researched,
+  .headline,
+  .signal-note,
+  .signal-stance,
+  .rationale,
+  .agent-note,
+  .section-muted,
+  .source-meta,
+  .source-quote,
+  .timeline-body p,
+  .methodology > p,
+  .history-caption {
+    color: #333;
+  }
+
+  .rationale,
+  .signal-card,
+  .source-card,
+  .criteria {
+    background: none;
+    border-color: #ccc;
+  }
+
+  .source-link {
+    color: #111;
+  }
+
+  a {
+    color: #111;
   }
 }
