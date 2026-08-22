@@ -9,27 +9,44 @@
     content="Are we in the singularity yet? A machine-researched status report with a data-reactive singularity visualization."
   />
   <!-- OG:START -->
-<meta property="og:title" content="Are We In The Singularity Yet? — NOT YET" />
-<meta property="og:description" content="Singularity warning signs accelerating, but runaway self-improvement beyond human control has not…" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://leemark.github.io/sing/" />
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="Are We In The Singularity Yet? — NOT YET" />
-<meta name="twitter:description" content="Singularity warning signs accelerating, but runaway self-improvement beyond human control has not…" />
-<!-- OG:END -->
+  <meta property="og:title" content="Are We In The Singularity Yet? — Not Yet" />
+  <meta property="og:description" content="Tactical recursive self-improvement is here; runaway, out-of-control change is not." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://leemark.github.io/sing/" />
+  <meta property="og:image" content="https://leemark.github.io/sing/og.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Are We In The Singularity Yet? — Not Yet" />
+  <meta name="twitter:description" content="Tactical recursive self-improvement is here; runaway, out-of-control change is not." />
+  <meta name="twitter:image" content="https://leemark.github.io/sing/og.png" />
+  <!-- OG:END -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕳️</text></svg>" />
+  <meta name="theme-color" content="#0a0a14" />
+  <link rel="preload" href="fonts/SpaceGrotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="styles.css" />
   <script>
     document.documentElement.classList.add("js");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      document.documentElement.classList.add("hero-ready");
+      document.documentElement.classList.add("hero-ready", "reduced");
+    } else {
+      document.documentElement.classList.add("booting");
+      setTimeout(function () {
+        document.documentElement.classList.remove("booting");
+        document.documentElement.classList.add("hero-ready");
+      }, 2200);
     }
-    setTimeout(function () {
-      document.documentElement.classList.add("hero-ready");
-    }, 2000);
   </script>
 </head>
 <body>
+  <div class="progress" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="cursor-ring" id="cursor-ring" aria-hidden="true"></div>
+
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="preloader-core"></div>
+    <p class="preloader-label">Approaching the event horizon</p>
+    <p class="preloader-count"><span id="preloader-count">0</span>%</p>
+  </div>
+
   <a class="skip-link" href="#evidence">Skip to evidence</a>
 
   <canvas id="bg" aria-hidden="true"></canvas>
@@ -78,9 +95,13 @@
     </a>
   </header>
 
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track" id="ticker-track"></div>
+  </div>
+
   <main>
     <section class="section evidence" id="evidence">
-      <h2>The evidence</h2>
+      <h2 class="section-title"><span class="section-num" aria-hidden="true">01</span>The evidence</h2>
       <!-- HEADLINE:START -->
 <p class="headline" id="headline">Singularity warning signs accelerating, but runaway self-improvement beyond human control has not…</p>
 <!-- HEADLINE:END -->
@@ -130,7 +151,7 @@
     </section>
 
     <section class="section sources" id="sources">
-      <h2>Primary sources</h2>
+      <h2 class="section-title"><span class="section-num" aria-hidden="true">02</span>Primary sources</h2>
       <p class="section-muted" id="sources-muted">
         Cited by the research agent, in its own words:
       </p>
@@ -181,7 +202,7 @@
     </section>
 
     <section class="section forecast" id="forecast">
-      <h2>The forecast</h2>
+      <h2 class="section-title"><span class="section-num" aria-hidden="true">03</span>The forecast</h2>
       <ol class="timeline">
         <li class="timeline-item">
           <time class="timeline-date">1993</time>
@@ -240,6 +261,21 @@
       <div class="history-dots" id="history-dots" role="img" aria-label="Verdict history"></div>
       <p class="history-caption" id="history-caption"></p>
     </div>
+
+    <dl class="stats" id="stats">
+      <div class="stat">
+        <dt>Days monitored</dt>
+        <dd id="stat-days">&mdash;</dd>
+      </div>
+      <div class="stat">
+        <dt>Research runs</dt>
+        <dd id="stat-runs">&mdash;</dd>
+      </div>
+      <div class="stat">
+        <dt>Verdict flips</dt>
+        <dd id="stat-flips">&mdash;</dd>
+      </div>
+    </dl>
 
     <!-- META:START -->
 <p class="methodology-meta">

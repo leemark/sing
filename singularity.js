@@ -71,7 +71,9 @@ export function createSingularity(canvas, opts = {}) {
   const N_DISK = 1700;
   const N_RING = 240;
   const N_CORE = 14;
-  const TOTAL = N_DISK + N_RING + N_CORE;
+  const N_STAR = 320;
+  const N_SHOCK = 90;
+  const TOTAL = N_DISK + N_RING + N_CORE + N_STAR + N_SHOCK;
   const STRIDE = 7;
 
   let program = null;
@@ -103,6 +105,7 @@ export function createSingularity(canvas, opts = {}) {
     ema: 0.016,
     adjust: 0,
     pulse: 0,
+    tilt: 0.36,
   };
 
   const palette = () => PALETTES[state.verdict] || PALETTES.not_yet;
@@ -128,6 +131,28 @@ export function createSingularity(canvas, opts = {}) {
   }
   for (let i = 0; i < N_CORE; i++) {
     world.push({ r: 0, a: 0, seed: Math.random(), y: (Math.random() - 0.5) * 0.05, core: true });
+  }
+  for (let i = 0; i < N_STAR; i++) {
+    const warm = Math.random() < 0.22;
+    const b = 0.55 + Math.random() * 0.45;
+    world.push({
+      x: (Math.random() - 0.5) * 150,
+      y: (Math.random() - 0.5) * 90,
+      z: -22 - Math.random() * 55,
+      seed: Math.random(),
+      cr: warm ? 1.0 : 0.78 + Math.random() * 0.22,
+      cg: warm ? 0.88 : 0.84 + Math.random() * 0.16,
+      cb: warm ? 0.72 : 1.0,
+      b,
+      star: true,
+    });
+  }
+  for (let i = 0; i < N_SHOCK; i++) {
+    world.push({
+      a: (i / N_SHOCK) * Math.PI * 2 + Math.random() * 0.08,
+      seed: Math.random(),
+      shock: true,
+    });
   }
 
   const data = new Float32Array(TOTAL * STRIDE);
@@ -234,9 +259,8 @@ export function createSingularity(canvas, opts = {}) {
   }
 
   function project(x, y, z, zoom) {
-    const tilt = 0.36;
-    const cosT = Math.cos(tilt);
-    const sinT = Math.sin(tilt);
+    const cosT = Math.cos(state.tilt);
+    const sinT = Math.sin(state.tilt);
     const yp = y * cosT - z * sinT;
     const zp = y * sinT + z * cosT;
     const depth = 11.5 - zp;
@@ -253,8 +277,13 @@ export function createSingularity(canvas, opts = {}) {
     const chaos = Math.min(1, pal.chaos + 0.3 * state.pulse);
     const speed = 0.75 + 0.85 * state.confidence;
     const bright = (0.75 + 0.75 * state.confidence) * (1 + 0.55 * state.pulse);
-    const zoom = height * 0.21 * (1 - state.scroll * 0.4);
+    const zoom = height * 0.21 * (1 + state.scroll * 0.6);
+    state.tilt = 0.36 - state.scroll * 0.12;
     const t = state.time;
+    const cx = width / 2 + state.px * width * 0.045;
+    const cy = height / 2 + state.py * height * 0.045;
+    const horizonPx = zoom * 0.52;
+    const lensK = zoom * zoom * 0.85;
     let o = 0;
 
     for (let i = 0; i < N_DISK; i++) {
@@ -274,24 +303,24 @@ export function createSingularity(canvas, opts = {}) {
       const y = p.y + tw;
       const pr = project(x, y, z, zoom);
 
-      const heat = 0.35 + 1.6 * (1 - (p.r - R_IN) / (R_OUT - R_IN));
-      const doppler = 1 + 0.55 * Math.sin(p.a - t * omega * 1.6);
-      const mixW = Math.min(0.82, heat * heat * 0.3);
+      const heat = 1 - (p.r - R_IN) / (R_OUT - R_IN);
+      const hot = Math.max(0, heat - 0.55) / 0.45;
+      const doppler = Math.pow(Math.max(0.3, 1 + 0.62 * Math.sin(p.a - t * omega * 1.6)), 1.35);
       const wob = 0.6 + 0.4 * Math.sin(p.seed * 6.283);
-      const r = pal.accent[0] + (pal.accent2[0] - pal.accent[0]) * wob;
-      const g = pal.accent[1] + (pal.accent2[1] - pal.accent[1]) * wob;
-      const b = pal.accent[2] + (pal.accent2[2] - pal.accent[2]) * wob;
-      const cr = r + (1 - r) * mixW;
-      const cg = g + (1 - g) * mixW;
-      const cb = b + (1 - b) * mixW;
-      const lum = heat * doppler * bright * (0.7 + 0.3 * wob) * 0.9;
+      let r = pal.accent[0] + (pal.accent2[0] - pal.accent[0]) * wob;
+      let g = pal.accent[1] + (pal.accent2[1] - pal.accent[1]) * wob;
+      let b = pal.accent[2] + (pal.accent2[2] - pal.accent[2]) * wob;
+      r = r + (1.0 - r) * hot;
+      g = g + (0.97 - g) * hot;
+      b = b + (0.9 - b) * hot;
+      const lum = (0.45 + 1.15 * heat * heat) * doppler * bright * (0.7 + 0.3 * wob);
 
       data[o++] = pr.sx;
       data[o++] = pr.sy;
       data[o++] = Math.min(64, (1.3 + 1.3 * heat) * pr.sc);
-      data[o++] = cr;
-      data[o++] = cg;
-      data[o++] = cb;
+      data[o++] = r;
+      data[o++] = g;
+      data[o++] = b;
       data[o++] = Math.min(1, lum);
     }
 
@@ -302,10 +331,10 @@ export function createSingularity(canvas, opts = {}) {
       const x = p.r * Math.cos(p.a);
       const z = p.r * Math.sin(p.a);
       const pr = project(x, p.y, z, zoom);
-      const flicker = 0.75 + 0.25 * Math.sin(t * 3 + p.seed * 6.283);
-      const wr = pal.accent[0] * 0.25 + 0.75;
-      const wg = pal.accent[1] * 0.25 + 0.75;
-      const wb = pal.accent[2] * 0.25 + 0.75;
+      const flicker = 0.78 + 0.22 * Math.sin(t * 3 + p.seed * 6.283);
+      const wr = pal.accent[0] * 0.2 + 0.8;
+      const wg = pal.accent[1] * 0.2 + 0.8;
+      const wb = pal.accent[2] * 0.2 + 0.8;
 
       data[o++] = pr.sx;
       data[o++] = pr.sy;
@@ -313,7 +342,7 @@ export function createSingularity(canvas, opts = {}) {
       data[o++] = wr;
       data[o++] = wg;
       data[o++] = wb;
-      data[o++] = Math.min(1, 0.9 * flicker * bright);
+      data[o++] = Math.min(1, 1.0 * flicker * bright);
     }
 
     for (let i = 0; i < N_CORE; i++) {
@@ -332,7 +361,62 @@ export function createSingularity(canvas, opts = {}) {
       data[o++] = cr;
       data[o++] = cg;
       data[o++] = cb;
-      data[o++] = 0.2;
+      data[o++] = 0.22;
+    }
+
+    for (let i = 0; i < N_STAR; i++) {
+      const p = world[N_DISK + N_RING + N_CORE + i];
+      const pr = project(p.x, p.y, p.z, zoom);
+      let dx = pr.sx - cx;
+      let dy = pr.sy - cy;
+      const d = Math.hypot(dx, dy) || 1;
+      let alpha = 0;
+      let sx = pr.sx;
+      let sy = pr.sy;
+      if (d >= horizonPx) {
+        const lens = Math.min(0.8, lensK / (d * d));
+        const d2 = d * (1 + lens);
+        sx = cx + (dx / d) * d2;
+        sy = cy + (dy / d) * d2;
+        alpha =
+          p.b *
+          (0.55 + 0.45 * Math.sin(t * (0.5 + p.seed * 1.6) + p.seed * 40)) *
+          (state.reduce ? 0.85 : 1);
+      }
+
+      data[o++] = sx;
+      data[o++] = sy;
+      data[o++] = 0.8 + p.seed * 1.7;
+      data[o++] = p.cr;
+      data[o++] = p.cg;
+      data[o++] = p.cb;
+      data[o++] = alpha * 0.85;
+    }
+
+    for (let i = 0; i < N_SHOCK; i++) {
+      const p = world[N_DISK + N_RING + N_CORE + N_STAR + i];
+      let sx = 0;
+      let sy = 0;
+      let size = 0;
+      let alpha = 0;
+      if (state.pulse > 0.02 && !state.reduce) {
+        const prog = 1 - state.pulse;
+        const r = R_PHOTON + prog * prog * R_OUT * 2.3;
+        const yWave = Math.sin(p.a * 2 + t * 3) * 0.08 * prog;
+        const pr = project(r * Math.cos(p.a), yWave, r * Math.sin(p.a), zoom);
+        sx = pr.sx;
+        sy = pr.sy;
+        size = (2.2 + 2.6 * p.seed) * pr.sc;
+        alpha = state.pulse * 0.75 * (0.5 + 0.5 * p.seed);
+      }
+
+      data[o++] = sx;
+      data[o++] = sy;
+      data[o++] = size;
+      data[o++] = 1 - (1 - pal.accent[0]) * 0.25;
+      data[o++] = 1 - (1 - pal.accent[1]) * 0.25;
+      data[o++] = 1 - (1 - pal.accent[2]) * 0.25;
+      data[o++] = alpha;
     }
   }
 

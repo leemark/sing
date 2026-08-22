@@ -320,9 +320,11 @@ function patchHtml(data) {
       `<meta property="og:description" content="${escapeHtml(data.headline)}" />`,
       `<meta property="og:type" content="website" />`,
       `<meta property="og:url" content="https://leemark.github.io/sing/" />`,
-      `<meta name="twitter:card" content="summary" />`,
+      `<meta property="og:image" content="https://leemark.github.io/sing/og.png" />`,
+      `<meta name="twitter:card" content="summary_large_image" />`,
       `<meta name="twitter:title" content="Are We In The Singularity Yet? \u2014 ${escapeHtml(text)}" />`,
       `<meta name="twitter:description" content="${escapeHtml(data.headline)}" />`,
+      `<meta name="twitter:image" content="https://leemark.github.io/sing/og.png" />`,
     ].join("\n"),
   );
 

@@ -66,10 +66,28 @@ function renderVerdict(verdict) {
   const todayVerdict = $("timeline-today-verdict");
   const text = VERDICT_TEXT[verdict] || "\u2026";
   answerEl.classList.toggle("answer-pending", !VERDICT_TEXT[verdict]);
-  answerEl.textContent = text;
+  splitVerdictLetters(answerEl, text);
   document.documentElement.dataset.verdict = VERDICT_TEXT[verdict] ? verdict : "unknown";
   state.verdict = verdict;
   if (todayVerdict) todayVerdict.textContent = text;
+}
+
+function splitVerdictLetters(el, text) {
+  el.setAttribute("aria-label", text);
+  el.innerHTML = "";
+  const hidden = document.createElement("span");
+  hidden.className = "sr-only";
+  hidden.textContent = text;
+  const wrap = document.createElement("span");
+  wrap.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < text.length; i++) {
+    const b = document.createElement("b");
+    b.className = "vl";
+    b.style.setProperty("--i", i);
+    b.textContent = text[i];
+    wrap.append(b);
+  }
+  el.append(hidden, wrap);
 }
 
 function renderConfidence(confidence) {
@@ -280,6 +298,13 @@ function renderAll(data) {
   renderSources(data.sources);
   renderDates(data.generated_at);
   renderFreshness(data);
+  updateTicker();
+  const answerEl = $("answer");
+  if (answerEl && !reduceMotion) {
+    answerEl.classList.remove("charge");
+    void answerEl.offsetWidth;
+    answerEl.classList.add("charge");
+  }
 }
 
 function renderError() {
@@ -439,6 +464,7 @@ async function loadHistory() {
       `Verdict history: ${entries.length} research runs, latest ${VERDICT_TEXT[latest.verdict] || "?"}`
     );
     caption.textContent = `Verdict history \u00b7 ${entries.length} research run${entries.length === 1 ? "" : "s"}`;
+    fillStats(entries);
   } catch {
     wrap.hidden = true;
   }
@@ -468,6 +494,13 @@ function initShader() {
       shader.setScroll(progress);
       const fade = Math.min(1, Math.max(0, (progress - 0.18) / 0.55));
       canvas.style.opacity = String(1 - fade);
+      if (!CSS.supports("animation-timeline: scroll()")) {
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        document.documentElement.style.setProperty(
+          "--progress",
+          max > 0 ? String(window.scrollY / max) : "0"
+        );
+      }
       ticking = false;
     });
   };
@@ -480,23 +513,187 @@ function initShader() {
 document.documentElement.classList.add("js");
 
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const finePointer = window.matchMedia("(pointer: fine)").matches;
 
-const dataPromise = loadData();
+function setupPreloader(dataReady) {
+  const pre = $("preloader");
+  const countEl = $("preloader-count");
+  if (!pre || !countEl) {
+    document.documentElement.classList.remove("booting");
+    return;
+  }
+  if (reduceMotion) {
+    document.documentElement.classList.remove("booting");
+    return;
+  }
+  const DURATION = 950;
+  const start = performance.now();
+  let finished = false;
+  function finish() {
+    if (finished) return;
+    finished = true;
+    countEl.textContent = "100";
+    Promise.resolve(dataReady).then(() => {
+      setTimeout(() => {
+        document.documentElement.classList.remove("booting");
+        pre.classList.add("done");
+        setTimeout(() => pre.classList.add("hide"), 750);
+      }, 150);
+    });
+  }
+  requestAnimationFrame(function tick(now) {
+    const p = Math.min(1, (now - start) / DURATION);
+    countEl.textContent = String(Math.round(p * 100));
+    if (p < 1) requestAnimationFrame(tick);
+    else finish();
+  });
+}
 
-setupShare();
-loadHistory();
+function setupCursor() {
+  if (reduceMotion || !finePointer) return;
+  const ring = $("cursor-ring");
+  if (!ring) return;
+  let x = window.innerWidth / 2;
+  let y = window.innerHeight / 2;
+  let tx = x;
+  let ty = y;
+  let raf = 0;
+  let idleFrames = 0;
+  function loop() {
+    const dx = tx - x;
+    const dy = ty - y;
+    x += dx * 0.16;
+    y += dy * 0.16;
+    ring.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && ++idleFrames > 30) {
+      raf = 0;
+      return;
+    }
+    raf = requestAnimationFrame(loop);
+  }
+  window.addEventListener(
+    "pointermove",
+    (e) => {
+      tx = e.clientX;
+      ty = e.clientY;
+      if (!ring.classList.contains("is-on")) {
+        x = tx;
+        y = ty;
+        ring.classList.add("is-on");
+      }
+      const hot = e.target.closest && e.target.closest("a, button, summary, .source-card, .signal-card");
+      ring.classList.toggle("is-hot", !!hot);
+      idleFrames = 0;
+      if (!raf) raf = requestAnimationFrame(loop);
+    },
+    { passive: true },
+  );
+}
 
-if (reduceMotion) {
-  document.documentElement.classList.add("hero-ready");
-  initShader();
-} else {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.documentElement.classList.add("hero-ready");
-      initShader();
+function setupMagnetic() {
+  if (reduceMotion || !finePointer) return;
+  document.querySelectorAll(".share-btn").forEach((btn) => {
+    btn.addEventListener("pointermove", (e) => {
+      const r = btn.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2);
+      const dy = e.clientY - (r.top + r.height / 2);
+      btn.style.transform = `translate(${dx * 0.18}px, ${dy * 0.24}px)`;
+    });
+    btn.addEventListener("pointerleave", () => {
+      btn.style.transform = "";
     });
   });
 }
+
+function bindTilt(listId, cardSel) {
+  const list = $(listId);
+  if (!list) return;
+  list.addEventListener("pointermove", (e) => {
+    const card = e.target.closest(cardSel);
+    if (!card) return;
+    for (const other of list.querySelectorAll(cardSel)) {
+      if (other !== card) {
+        other.style.setProperty("--rx", "0deg");
+        other.style.setProperty("--ry", "0deg");
+      }
+    }
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    card.style.setProperty("--ry", `${(px * 7).toFixed(2)}deg`);
+    card.style.setProperty("--rx", `${(-py * 6).toFixed(2)}deg`);
+  });
+  list.addEventListener("pointerleave", () => {
+    for (const c of list.querySelectorAll(cardSel)) {
+      c.style.setProperty("--rx", "0deg");
+      c.style.setProperty("--ry", "0deg");
+    }
+  });
+}
+
+function updateTicker() {
+  const track = $("ticker-track");
+  if (!track || !state.verdict) return;
+  track.innerHTML = "";
+  const v = VERDICT_TEXT[state.verdict] || "\u2026";
+  const texts = [
+    { label: "Are we in the singularity yet?" },
+    { verdict: v },
+    { label: state.confidence != null ? `${state.confidence}% machine confidence` : "confidence pending" },
+    { label: state.dateText ? `researched ${state.dateText}` : "awaiting research" },
+    { label: "honest \u00b7 vibes-free \u00b7 occasionally wrong" },
+  ];
+  for (let g = 0; g < 2; g++) {
+    const group = document.createElement("div");
+    group.className = "ticker-group";
+    for (const item of texts) {
+      const span = document.createElement("span");
+      span.className = "ticker-item";
+      if (item.verdict) {
+        const strong = document.createElement("strong");
+        strong.textContent = item.verdict;
+        span.append(strong);
+      } else {
+        span.textContent = item.label;
+      }
+      group.append(span);
+      const sep = document.createElement("span");
+      sep.className = "ticker-item ticker-sep";
+      sep.textContent = "\u2726";
+      group.append(sep);
+    }
+    track.append(group);
+  }
+}
+
+function fillStats(entries) {
+  const days = $("stat-days");
+  const runs = $("stat-runs");
+  const flips = $("stat-flips");
+  if (!days || !runs || !flips || !entries.length) return;
+  const first = new Date(entries[0].generated_at).getTime();
+  if (Number.isFinite(first)) {
+    days.textContent = String(Math.max(1, Math.ceil((Date.now() - first) / 86400000)));
+  }
+  runs.textContent = String(entries.length);
+  let flipCount = 0;
+  for (let i = 1; i < entries.length; i++) {
+    if (entries[i].verdict !== entries[i - 1].verdict) flipCount++;
+  }
+  flips.textContent = String(flipCount);
+}
+
+const dataPromise = loadData();
+
+initShader();
+
+setupShare();
+setupCursor();
+setupMagnetic();
+bindTilt("source-list", ".source-card");
+bindTilt("signal-list", ".signal-card");
+setupPreloader(dataPromise);
+loadHistory();
 
 dataPromise.then((data) => {
   if (data && shader) {
@@ -504,3 +701,13 @@ dataPromise.then((data) => {
     shader.setConfidence(data.confidence ?? 80);
   }
 });
+
+if (reduceMotion) {
+  document.documentElement.classList.add("hero-ready");
+} else {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.documentElement.classList.add("hero-ready");
+    });
+  });
+}
